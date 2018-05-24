@@ -312,7 +312,7 @@ draw_char (monitor_t *mon, font_t *cur_font, int x, int align, uint16_t ch)
 
     x = shift(mon, x, align, ch_width);
 
-    int y = bh / 2 + cur_font->height / 2- cur_font->descent + offsets_y[offset_y_index];
+    int y = (bh + cur_font->height) / 2 - cur_font->descent + offsets_y[offset_y_index];
     if (cur_font->xft_ft) {
         XftDrawString16 (xft_draw, &sel_fg, cur_font->xft_ft, x,y, &ch, 1);
     } else {
@@ -320,9 +320,7 @@ draw_char (monitor_t *mon, font_t *cur_font, int x, int align, uint16_t ch)
         ch = (ch >> 8) | (ch << 8);
         
         // The coordinates here are those of the baseline
-        xcb_poly_text_16_simple(c, mon->pixmap, gc[GC_DRAW],
-                            x, y,
-                            1, &ch);
+        xcb_poly_text_16_simple(c, mon->pixmap, gc[GC_DRAW], x, y, 1, &ch);
     }
 
     draw_lines(mon, x, ch_width);
@@ -358,7 +356,6 @@ draw_icon (monitor_t *mon, int x, int align, char *filename)
 
     fill_rect(mon->pixmap, gc[GC_CLEAR], x, by, icon->width, bh);
 
-
     xcb_image_t* image = malloc(icon->image->size);
     memcpy(image, icon->image, icon->image->size);
 
@@ -372,7 +369,7 @@ draw_icon (monitor_t *mon, int x, int align, char *filename)
         }
     }
 
-    xcb_image_put(c, mon->pixmap, gc[GC_DRAW], image, x, (bh-icon->height) / 2, 0);
+    xcb_image_put(c, mon->pixmap, gc[GC_DRAW], image, x, (bh - icon->height) / 2, 0);
     xcb_image_destroy(image);
 
     return icon_width;
