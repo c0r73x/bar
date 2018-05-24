@@ -13,7 +13,7 @@ CFDEBUG = -g3 -pedantic -Wall -Wunused-parameter -Wlong-long \
           -Wsign-conversion -Wconversion -Wimplicit-function-declaration
 
 EXEC = lemonbar
-SRCS = lemonbar.c
+SRCS = lemonbar.c xpm.c
 OBJS = ${SRCS:.c=.o}
 
 PREFIX?=/usr
