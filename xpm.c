@@ -2,6 +2,7 @@
 
 #include <ctype.h>
 #include <fcntl.h>
+#include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,18 +14,19 @@
 static FILE *rgb_txt = NULL;
 static xpm_icon_t *icon = NULL;
 
-static void xpm_parse_color(char *color, short *r, short *g, short *b)
+static void xpm_parse_color(char *color, unsigned short *r, unsigned short *g,
+                            unsigned short *b)
 {
     char buf[4096];
 
     /* is a #ff00ff like color */
     if (color[0] == '#') {
         int len;
-        char val[32];
 
         len = strlen(color) - 1;
 
         if (len < 96) {
+            char val[32];
             int i;
 
             len /= 3;
@@ -34,26 +36,26 @@ static void xpm_parse_color(char *color, short *r, short *g, short *b)
             }
 
             val[i] = 0;
-            sscanf(val, "%x", r);
+            *r = strtoul(val, NULL, 0);
 
             for (i = 0; i < len; i++) {
                 val[i] = color[1 + i + (1 * len)];
             }
 
             val[i] = 0;
-            sscanf(val, "%x", g);
+            *g = strtoul(val, NULL, 0);
 
             for (i = 0; i < len; i++) {
                 val[i] = color[1 + i + (2 * len)];
             }
 
             val[i] = 0;
-            sscanf(val, "%x", b);
+            *b = strtoul(val, NULL, 0);
 
             if (len == 1) {
-                *r = (*r << 4) | *r;
-                *g = (*g << 4) | *g;
-                *b = (*b << 4) | *b;
+                *r = (unsigned)(*r << 4u) | *r;
+                *g = (unsigned)(*g << 4u) | *g;
+                *b = (unsigned)(*b << 4u) | *b;
             } else if (len > 2) {
                 *r >>= (len - 2) * 4;
                 *g >>= (len - 2) * 4;
@@ -65,20 +67,23 @@ static void xpm_parse_color(char *color, short *r, short *g, short *b)
     }
 
     /* look in rgb txt database */
-    if (!rgb_txt)
     #ifndef __EMX__
-        rgb_txt = fopen("/usr/share/X11/rgb.txt", "r");
-
     if (!rgb_txt) {
-        rgb_txt = fopen("/usr/X11R6/lib/X11/rgb.txt", "r");
+        rgb_txt = fopen("/usr/share/X11/rgb.txt", "er");
     }
 
     if (!rgb_txt) {
-        rgb_txt = fopen("/usr/openwin/lib/X11/rgb.txt", "r");
+        rgb_txt = fopen("/usr/X11R6/lib/X11/rgb.txt", "er");
+    }
+
+    if (!rgb_txt) {
+        rgb_txt = fopen("/usr/openwin/lib/X11/rgb.txt", "er");
     }
 
     #else
+    if (!rgb_txt) {
         rgb_txt = fopen(__XOS2RedirRoot("/XFree86/lib/X11/rgb.txt"), "rt");
+    }
     #endif
 
     if (!rgb_txt) {
@@ -112,20 +117,22 @@ static void xpm_parse_done(void)
 
     rgb_txt = NULL;
 
-    if (icon != NULL) {
-        if(icon->image != NULL) {
-            xcb_image_destroy(icon->image);
-            icon->image = NULL;
-        }
-
-        if(icon->filename != NULL) {
-            free(icon->filename);
-            icon->filename = NULL;
-        }
-
-        free(icon);
-        icon = NULL;
+    if (icon == NULL) {
+        return;
     }
+
+    if (icon->image != NULL) {
+        xcb_image_destroy(icon->image);
+        icon->image = NULL;
+    }
+
+    if (icon->filename != NULL) {
+        free(icon->filename);
+        icon->filename = NULL;
+    }
+
+    free(icon);
+    icon = NULL;
 }
 
 struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
@@ -134,7 +141,7 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
         return 0;
     }
 
-    for (int i=0; i < icon_count; i++) {
+    for (int i = 0; i < icon_count; i++) {
         if (icon_cache[i]->filename != NULL) {
             if (strcmp(icon_cache[i]->filename, filename) == 0) {
                 return icon_cache[i];
@@ -146,13 +153,14 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
     struct _cmap {
         unsigned char str[6];
         unsigned char transp;
-        short r, g, b;
+        unsigned short r, g, b;
     } *cmap;
 
     uint8_t *ptr;
     FILE *f;
 
-    int pc, c, i, j, k, w, h, ncolors, cpp, comment, quote, context, len, done, backslash;
+    int pc, c, i, j, k, w, h, ncolors, cpp, comment, quote, context, len, done,
+        backslash;
     char *line, s[256], tok[256], col[256];
     int lsz = 256;
 
@@ -161,7 +169,7 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
 
     done = 0;
 
-    f = fopen(filename, "rb");
+    f = fopen(filename, "erb");
 
     if (!f) {
         xpm_parse_done();
@@ -172,7 +180,7 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
     rewind(f);
     s[9] = 0;
 
-    if (strcmp("/* XPM */", s)) {
+    if (strcmp("/* XPM */", s) == 0) {
         fclose(f);
         xpm_parse_done();
         return 0;
@@ -180,7 +188,7 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
 
     icon = malloc(sizeof(xpm_icon_t));
     icon->filename = malloc(strlen(filename));
-    strcpy(icon->filename, filename);
+    strncpy(icon->filename, filename, PATH_MAX);
 
     i = 0;
     j = 0;
@@ -234,7 +242,8 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
                     sscanf(line, "%i %i %i %i", &w, &h, &ncolors, &cpp);
 
                     if ((ncolors > 32766) || (ncolors < 1)) {
-                        fprintf(stderr, "XPM ERROR: XPM files with colors > 32766 or < 1 not supported\n");
+                        fprintf(stderr,
+                                "XPM ERROR: XPM files with colors > 32766 or < 1 not supported\n");
                         free(line);
                         fclose(f);
                         xpm_parse_done();
@@ -242,7 +251,8 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
                     }
 
                     if ((cpp > 5) || (cpp < 1)) {
-                        fprintf(stderr, "XPM ERROR: XPM files with characters per pixel > 5 or < 1not supported\n");
+                        fprintf(stderr,
+                                "XPM ERROR: XPM files with characters per pixel > 5 or < 1not supported\n");
                         free(line);
                         fclose(f);
                         xpm_parse_done();
@@ -262,17 +272,18 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
                     }
 
                     xcb_image_t *img = xcb_image_create_native(
-                        conn,
-                        w,
-                        h,
-                        XCB_IMAGE_FORMAT_Z_PIXMAP,
-                        32,
-                        NULL,
-                        ~0,
-                        NULL
-                    );
+                                           conn,
+                                           w,
+                                           h,
+                                           XCB_IMAGE_FORMAT_Z_PIXMAP,
+                                           32,
+                                           NULL,
+                                           ~0u,
+                                           NULL
+                                       );
 
                     img->data = malloc(img->size);
+
                     if (img->data == NULL) {
                         free(cmap);
                         free(line);
@@ -322,7 +333,7 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
                                     if (k >= len) {
                                         if (col[0]) {
                                             if (strlen(col) < (sizeof(col) - 2)) {
-                                                strcat(col, " ");
+                                                strncat(col, " ", sizeof(col) - 2);
                                             } else {
                                                 done = 1;
                                             }
@@ -330,7 +341,7 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
 
                                         if (strlen(col) + strlen(s) <
                                             (sizeof(col) - 1)) {
-                                            strcat(col, s);
+                                            strncat(col, s, sizeof(col) - 2);
                                         }
                                     }
 
@@ -353,12 +364,12 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
                                         }
                                     }
 
-                                    strcpy(tok, s);
+                                    strncpy(tok, s, sizeof(tok));
                                     col[0] = 0;
                                 } else {
                                     if (col[0]) {
                                         if (strlen(col) < (sizeof(col) - 2)) {
-                                            strcat(col, " ");
+                                            strncat(col, " ", sizeof(col) - 2);
                                         } else {
                                             done = 1;
                                         }
@@ -366,7 +377,7 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
 
                                     if (strlen(col) + strlen(s) <
                                         (sizeof(col) - 1)) {
-                                        strcat(col, s);
+                                        strncat(col, s, sizeof(col) - 2);
                                     }
                                 }
                             }
@@ -385,16 +396,13 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
                         if (cpp == 2) {
                             for (i = 0; i < ncolors; i++) {
                                 lookup[(int)cmap[i].str[0] - 32]
-                                    [(int)cmap[i].str[1] - 32] = i;
+                                [(int)cmap[i].str[1] - 32] = i;
                             }
                         }
 
                         context++;
                     }
                 } else {
-                    /* Image Data */
-                    i = 0;
-
                     if (cpp == 0) {
                         /* Chars per pixel = 0? well u never know */
                     }
@@ -424,7 +432,7 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
                                 ptr[count++] = 0x00;
                                 ptr[count++] = 0x00;
                                 ptr[count++] = 0x00,
-                                ptr[count++] = 0x00;
+                                               ptr[count++] = 0x00;
                             } else {
                                 ptr[count++] = cmap[lookup[(int)col[0] - 32][(int)col[1] - 32]].b;
                                 ptr[count++] = cmap[lookup[(int)col[0] - 32][(int)col[1] - 32]].g;
@@ -442,7 +450,7 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
                             i--;
 
                             for (j = 0; j < ncolors; j++) {
-                                if (!strcmp(col, cmap[j].str)) {
+                                if (strcmp(col, cmap[j].str) == 0) {
                                     if (cmap[j].transp) {
                                         ptr[count++] = 0x00;
                                         ptr[count++] = 0x00;
@@ -486,7 +494,13 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
 
         if (i >= lsz) {
             lsz += 256;
-            line = realloc(line, lsz);
+            void * tmp = realloc(line, lsz);
+            if (tmp == NULL) {
+                fclose(f);
+                return 0;
+            }
+
+            line = tmp;
         }
 
         if (((context > 1) && (count >= pixels))) {

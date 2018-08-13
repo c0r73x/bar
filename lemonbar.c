@@ -332,8 +332,9 @@ int
 draw_icon (monitor_t *mon, int x, int align, char *filename)
 {
     xpm_icon_t *icon = load_xpm(c, filename);
-    if (icon == NULL)
+    if (icon == 0) {
         return 0;
+    }
 
     int icon_width = icon->width;
 
@@ -481,6 +482,10 @@ area_get (xcb_window_t win, const int btn, const int x)
 void
 area_shift (xcb_window_t win, const int align, int delta)
 {
+    if (delta == 0) {
+        return;
+    }
+
     if (align == ALIGN_L)
         return;
     if (align == ALIGN_C)
