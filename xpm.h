@@ -11,7 +11,6 @@ typedef struct xpm_icon_t {
 
 #define ICON_CACHE_SIZE 256
 static int icon_count = 0;
-static int icon_index = 0;
 static xpm_icon_t* icon_cache[ICON_CACHE_SIZE];
 
 struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename);

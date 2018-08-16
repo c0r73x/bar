@@ -13,6 +13,7 @@
 
 static FILE *rgb_txt = NULL;
 static xpm_icon_t *icon = NULL;
+static int icon_index = 0;
 
 static void xpm_parse_color(char *color, unsigned short *r, unsigned short *g,
                             unsigned short *b)
@@ -36,21 +37,21 @@ static void xpm_parse_color(char *color, unsigned short *r, unsigned short *g,
             }
 
             val[i] = 0;
-            *r = strtoul(val, NULL, 0);
+            *r = strtoul(val, NULL, 16);
 
             for (i = 0; i < len; i++) {
                 val[i] = color[1 + i + (1 * len)];
             }
 
             val[i] = 0;
-            *g = strtoul(val, NULL, 0);
+            *g = strtoul(val, NULL, 16);
 
             for (i = 0; i < len; i++) {
                 val[i] = color[1 + i + (2 * len)];
             }
 
             val[i] = 0;
-            *b = strtoul(val, NULL, 0);
+            *b = strtoul(val, NULL, 16);
 
             if (len == 1) {
                 *r = (unsigned)(*r << 4u) | *r;
@@ -151,7 +152,7 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
 
 
     struct _cmap {
-        unsigned char str[6];
+        char str[6];
         unsigned char transp;
         unsigned short r, g, b;
     } *cmap;
@@ -169,18 +170,25 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
 
     done = 0;
 
-    f = fopen(filename, "erb");
+    f = fopen(filename, "rb");
 
     if (!f) {
+        perror("fopen");
         xpm_parse_done();
         return 0;
     }
 
-    fread(s, 1, 9, f);
+    if(fread(s, 1, 9, f) == 0) {
+        perror("fread");
+        fclose(f);
+        xpm_parse_done();
+        return 0;
+    }
+
     rewind(f);
     s[9] = 0;
 
-    if (strcmp("/* XPM */", s) == 0) {
+    if (strcmp("/* XPM */", s) != 0) {
         fclose(f);
         xpm_parse_done();
         return 0;
@@ -188,7 +196,7 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
 
     icon = malloc(sizeof(xpm_icon_t));
     icon->filename = malloc(strlen(filename));
-    strncpy(icon->filename, filename, PATH_MAX);
+    strncpy(icon->filename, filename, strlen(filename) - 1);
 
     i = 0;
     j = 0;
