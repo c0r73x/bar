@@ -143,6 +143,10 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
     }
 
     for (int i = 0; i < icon_count; i++) {
+        if (icon_cache[i] == NULL) {
+            continue;
+        }
+
         if (icon_cache[i]->filename != NULL) {
             if (strcmp(icon_cache[i]->filename, filename) == 0) {
                 return icon_cache[i];
@@ -530,9 +534,9 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
         icon_count++;
     }
 
-    icon_cache[icon_index] = icon;
     icon_index++;
     icon_index %= ICON_CACHE_SIZE;
+    icon_cache[icon_index] = icon;
 
     return icon;
 }
