@@ -319,7 +319,7 @@ draw_char (monitor_t *mon, font_t *cur_font, int x, int align, uint16_t ch)
     } else {
         /* xcb accepts string in UCS-2 BE, so swap */
         ch = (ch >> 8) | (ch << 8);
-        
+
         // The coordinates here are those of the baseline
         xcb_poly_text_16_simple(c, mon->pixmap, gc[GC_DRAW], x, y, 1, &ch);
     }
@@ -592,10 +592,9 @@ font_has_glyph (font_t *font, const uint16_t c)
     if (font->xft_ft) {
         if (XftCharExists(dpy, font->xft_ft, (FcChar32) c)) {
             return true;
-        } else {
-            return false;
         }
 
+        return false;
     }
 
     if (c < font->char_min || c > font->char_max)
@@ -654,7 +653,7 @@ parse (char *text)
 
     for (;;) {
         if (*p == '\0' || *p == '\n')
-			break;
+            break;
 
         if (p[0] == '%' && p[1] == '{' && (block_end = strchr(p++, '}'))) {
             p++;
@@ -680,9 +679,9 @@ parse (char *text)
                     case 'r': pos_x = 0; align = ALIGN_R; break;
 
                     case 'I':
-                              if (block_end-p > 255)
+                              if (block_end-p > PATH_MAX)
                                   break;
-                              char filename[256];
+                              char filename[PATH_MAX];
                               strncpy(filename, p, block_end-p);
                               filename[block_end-p] = '\0';
                               int icon_width = draw_icon(cur_mon, pos_x, align, filename);
@@ -720,10 +719,10 @@ parse (char *text)
                               }
                               else
                               { p++; continue; }
-					          XftDrawDestroy (xft_draw);
-					          if (!(xft_draw = XftDrawCreate (dpy, cur_mon->pixmap, visual_ptr , colormap ))) {
-						        fprintf(stderr, "Couldn't create xft drawable\n");
-					          }
+                              XftDrawDestroy (xft_draw);
+                              if (!(xft_draw = XftDrawCreate (dpy, cur_mon->pixmap, visual_ptr , colormap ))) {
+                                fprintf(stderr, "Couldn't create xft drawable\n");
+                              }
 
                               p++;
                               pos_x = 0;
@@ -1226,8 +1225,8 @@ get_visual (void)
     }
     
     //Fallback
-    visual_ptr = DefaultVisual(dpy, scr_nbr);	
-	return scr->root_visual;
+    visual_ptr = DefaultVisual(dpy, scr_nbr);   
+    return scr->root_visual;
 }
 
 // Parse an X-styled geometry string, we don't support signed offsets though.
@@ -1293,7 +1292,7 @@ xconn (void)
         exit (EXIT_FAILURE);
     }
 
-	XSetEventQueueOwner(dpy, XCBOwnsEventQueue);
+    XSetEventQueueOwner(dpy, XCBOwnsEventQueue);
 
     if (xcb_connection_has_error(c)) {
         fprintf(stderr, "Couldn't connect to X\n");
@@ -1304,7 +1303,7 @@ xconn (void)
     scr = xcb_setup_roots_iterator(xcb_get_setup(c)).data;
 
     /* Try to get a RGBA visual and build the colormap for that */
-	visual = get_visual();
+    visual = get_visual();
     colormap = xcb_generate_id(c);
     xcb_create_colormap(c, XCB_COLORMAP_ALLOC_NONE, colormap, scr->root, visual);
 }
@@ -1451,8 +1450,9 @@ cleanup (void)
     }
 
     for (int i = 0; icon_count; i++) {
-        xcb_image_destroy(icon_cache[i]->image);
-        free(icon_cache[i]->filename);
+        if (icon_cache[i].image != NULL) {
+            xcb_image_destroy(icon_cache[i].image);
+        }
     }
 
     while (monhead) {
@@ -1604,7 +1604,7 @@ main (int argc, char **argv)
 
     // Prevent fgets to block
     fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
-	
+    
     for (;;) {
         bool redraw = false;
 

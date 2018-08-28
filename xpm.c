@@ -12,8 +12,12 @@
 #include "xpm.h"
 
 static FILE *rgb_txt = NULL;
-static xpm_icon_t *icon = NULL;
-static int icon_index = 0;
+static xpm_icon_t icon = {0};
+
+unsigned int icon_count = 0;
+unsigned int icon_index = 0;
+
+xpm_icon_t icon_cache[ICON_CACHE_SIZE] = {0};
 
 static void xpm_parse_color(char *color, unsigned short *r, unsigned short *g,
                             unsigned short *b)
@@ -118,22 +122,10 @@ static void xpm_parse_done(void)
 
     rgb_txt = NULL;
 
-    if (icon == NULL) {
-        return;
+    if (icon.image != NULL) {
+        xcb_image_destroy(icon.image);
+        icon.image = NULL;
     }
-
-    if (icon->image != NULL) {
-        xcb_image_destroy(icon->image);
-        icon->image = NULL;
-    }
-
-    if (icon->filename != NULL) {
-        free(icon->filename);
-        icon->filename = NULL;
-    }
-
-    free(icon);
-    icon = NULL;
 }
 
 struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
@@ -143,13 +135,9 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
     }
 
     for (int i = 0; i < icon_count; i++) {
-        if (icon_cache[i] == NULL) {
-            continue;
-        }
-
-        if (icon_cache[i]->filename != NULL) {
-            if (strcmp(icon_cache[i]->filename, filename) == 0) {
-                return icon_cache[i];
+        if (icon_cache[i].image != NULL) {
+            if (strcmp(icon_cache[i].filename, filename) == 0) {
+                return &icon_cache[i];
             }
         }
     }
@@ -198,9 +186,7 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
         return 0;
     }
 
-    icon = malloc(sizeof(xpm_icon_t));
-    icon->filename = malloc(strlen(filename));
-    strncpy(icon->filename, filename, strlen(filename) - 1);
+    strncpy(icon.filename, filename, PATH_MAX);
 
     i = 0;
     j = 0;
@@ -271,8 +257,8 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
                         return 0;
                     }
 
-                    icon->width = w;
-                    icon->height = h;
+                    icon.width = w;
+                    icon.height = h;
 
                     cmap = malloc(sizeof(struct _cmap) * ncolors);
 
@@ -304,7 +290,7 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
                         return 0;
                     }
 
-                    icon->image = img;
+                    icon.image = img;
                     ptr = &img->data[0];
                     pixels = w * h * 4;
 
@@ -534,9 +520,20 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
         icon_count++;
     }
 
+    unsigned int index = icon_index;
     icon_index++;
     icon_index %= ICON_CACHE_SIZE;
-    icon_cache[icon_index] = icon;
 
-    return icon;
+    if (icon_cache[index].image != NULL) {
+        xcb_image_destroy(icon_cache[index].image);
+        icon_cache[index].image = NULL;
+    }
+
+    strncpy(icon_cache[index].filename, icon.filename, PATH_MAX);
+
+    icon_cache[index].image = icon.image;
+    icon_cache[index].width = icon.width;
+    icon_cache[index].height = icon.height;
+
+    return &icon_cache[index];
 }
