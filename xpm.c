@@ -281,6 +281,7 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
                                        );
 
                     img->data = malloc(img->size);
+                    memset(img->data, 0, img->size);
 
                     if (img->data == NULL) {
                         free(cmap);
@@ -495,6 +496,7 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
             void * tmp = realloc(line, lsz);
             if (tmp == NULL) {
                 fclose(f);
+                xpm_parse_done();
                 return 0;
             }
 
@@ -515,6 +517,11 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
     }
 
     rgb_txt = NULL;
+
+    if (icon.image == NULL) {
+        xpm_parse_done();
+        return 0;
+    }
 
     if (icon_count < ICON_CACHE_SIZE) {
         icon_count++;
