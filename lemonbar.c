@@ -333,7 +333,7 @@ int
 draw_icon (monitor_t *mon, int x, int align, char *filename)
 {
     xpm_icon_t *icon = load_xpm(c, filename);
-    if (icon == 0 || icon->image == NULL) {
+    if (icon == 0) {
         return 0;
     }
 
@@ -361,18 +361,18 @@ draw_icon (monitor_t *mon, int x, int align, char *filename)
     xcb_image_t* image = malloc(icon->image->size);
     memcpy(image, icon->image, icon->image->size);
 
-    for (unsigned int i = 0; i < icon->height; ++i) {
-        for (unsigned int j = 0; j < icon->width; ++j) {
-            uint32_t p = xcb_image_get_pixel(image, j, i);
+    for (unsigned int s = 0; s < (icon->width * icon->height); s++) {
+        int ix = s % icon->width;
+        int iy = s / icon->width;
 
-            if (p == 0) {
-                xcb_image_put_pixel(image, j, i, bgc.v);
-            }
+        uint32_t p = xcb_image_get_pixel(image, ix, iy);
+
+        if (p == 0 && ix < image->width && iy < image->height) {
+            xcb_image_put_pixel(image, ix, iy, bgc.v);
         }
     }
 
     int y = ((bh - icon->height) / 2.0f) + (offsets_y[offset_y_index]);
-
     xcb_image_put(c, mon->pixmap, gc[GC_DRAW], image, x, y, 0);
     xcb_image_destroy(image);
 

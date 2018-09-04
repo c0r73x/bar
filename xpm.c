@@ -74,15 +74,15 @@ static void xpm_parse_color(char *color, unsigned short *r, unsigned short *g,
     /* look in rgb txt database */
     #ifndef __EMX__
     if (!rgb_txt) {
-        rgb_txt = fopen("/usr/share/X11/rgb.txt", "er");
+        rgb_txt = fopen("/usr/share/X11/rgb.txt", "rt");
     }
 
     if (!rgb_txt) {
-        rgb_txt = fopen("/usr/X11R6/lib/X11/rgb.txt", "er");
+        rgb_txt = fopen("/usr/X11R6/lib/X11/rgb.txt", "rt");
     }
 
     if (!rgb_txt) {
-        rgb_txt = fopen("/usr/openwin/lib/X11/rgb.txt", "er");
+        rgb_txt = fopen("/usr/openwin/lib/X11/rgb.txt", "rt");
     }
 
     #else
@@ -165,13 +165,11 @@ struct xpm_icon_t *load_xpm(xcb_connection_t *conn, char *filename)
     f = fopen(filename, "rb");
 
     if (!f) {
-        perror("fopen");
         xpm_parse_done();
         return 0;
     }
 
     if(fread(s, 1, 9, f) == 0) {
-        perror("fread");
         fclose(f);
         xpm_parse_done();
         return 0;
