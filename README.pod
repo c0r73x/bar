@@ -2,15 +2,22 @@
 
 lemonbar - Featherweight lemon-scented bar
 
-=for HTML <a href="https://travis-ci.org/LemonBoy/bar"><img src="https://travis-ci.org/LemonBoy/bar.svg?branch=master"></a>
+=for HTML <img src="https://github.com/LemonBoy/bar/workflows/Does%20this%20build%20look%20infected%3F/badge.svg">
 
 =head1 SYNOPSIS
 
-I<lemonbar> [-h | -g I<width>B<x>I<height>B<+>I<x>B<+>I<y> | -b | -d | -f I<font> | -p | -n I<name> | -u I<pixel> | -B I<color> | -F I<color> | -U I<color> | -o I<offset> ]
+I<lemonbar> [-h | -g I<width>B<x>I<height>B<+>I<x>B<+>I<y> | -o | -b | -d | -f I<font> | -p | -n I<name> | -u I<pixel> | -B I<color> | -F I<color> | -U I<color>]
 
 =head1 DESCRIPTION
 
-B<lemonbar> (formerly known as B<bar>) is a lightweight bar entirely based on XCB. Provides full UTF-8 support, basic formatting, RandR and Xinerama support and EWMH compliance without wasting your precious memory.
+B<lemonbar> (formerly known as B<bar>) is a lightweight statusbar based on XCB.
+Provides full UTF-8 support, basic formatting, RandR and Xinerama support and
+EWMH compliance without wasting your precious memory.
+
+=head1 INPUT
+
+The data to be parsed is read from the standard input, parsing and printing the
+input data are delayed until a newline is found.
 
 =head1 OPTIONS
 
@@ -23,6 +30,10 @@ Display the help and exit.
 =item B<-g> I<width>B<x>I<height>B<+>I<x>B<+>I<y>
 
 Set the window geometry. If a parameter is omitted it's filled with the default value. If the I<y> parameter is specified along with the B<-b> switch then the position is relative to the bottom of the screen.
+
+=item B<-o> I<name>
+
+Set next output to I<name>. May be used multiple times; order is significant. If any B<-o> options are given, only B<-o> specified monitors will be used. Invalid output names are silently ignored. (only supported on randr configurations at this time)
 
 =item B<-b>
 
@@ -73,7 +84,7 @@ Set the underline color of the bar. Accepts the same color formats as B<-B>.
 
 =head1 FORMATTING
 
-lemonbar provides a screenrc-inspired formatting syntax to allow full customization at runtime. Every formatting block is opened with C<%{> and closed by C<}> and accepts the following commands, the parser tries it's best to handle malformed input. Use C<%%> to get a literal percent sign (C<%>).
+lemonbar provides a screenrc-inspired formatting syntax to allow full customization at runtime. Every formatting block is opened with C<%{> and closed by C<}> and accepts the following commands, the parser tries its best to handle malformed input. Use C<%%> to get a literal percent sign (C<%>).
 
 =over
 
@@ -143,6 +154,11 @@ First/last monitor.
 
 Nth monitor.
 
+=item I<n>B<NAME>
+
+Named monitor.
+Eg. I<%{SnHDMI-0} This text will show up on the HDMI-0 output>
+
 =back
 
 =back
@@ -189,7 +205,7 @@ L<git repository|https://github.com/LemonBoy/bar>
 
 =head1 AUTHOR
 
-2012-2015 (C) The Lemon Man
+2012-2020 (C) The Lemon Man
 
 Xinerama support was kindly contributed by Stebalien
 
