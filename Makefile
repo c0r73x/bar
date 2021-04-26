@@ -9,7 +9,7 @@ endif
 CC	?= gcc
 CFLAGS += -Wall -std=c99 -Os -DVERSION="\"$(VERSION)\"" -I/usr/include/freetype2 -D_GNU_SOURCE
 LDFLAGS += -lxcb -lxcb-xinerama -lxcb-randr -lxcb-image -lX11 -lX11-xcb -lXft -lfreetype -lz -lfontconfig
-CFDEBUG = -g3 -pedantic -Wall -Wunused-parameter -Wlong-long \
+CFDEBUG = -O3 -pedantic -Wall -Wunused-parameter -Wlong-long \
           -Wsign-conversion -Wconversion -Wimplicit-function-declaration
 
 EXEC = lemonbar

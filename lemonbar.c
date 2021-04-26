@@ -114,6 +114,7 @@ static int font_index = -1;
 static int offsets_y[MAX_FONT_COUNT];
 static int offset_y_count = 0;
 static int offset_y_index = 0;
+static int icon_offset = 0;
 
 static uint32_t attrs = 0;
 static bool dock = false;
@@ -380,7 +381,7 @@ draw_icon (monitor_t *mon, int x, int align, char *filename)
         }
     }
 
-    int y = ((bh - icon->height) / 2.0f) + (offsets_y[offset_y_index]);
+    int y = ((bh - icon->height) / 2.0f) + icon_offset;
     xcb_image_put(c, mon->pixmap, gc[GC_DRAW], image, x, y, 0);
     xcb_image_destroy(image);
 
@@ -1707,11 +1708,11 @@ main (int argc, char **argv)
     // Connect to the Xserver and initialize scr
     xconn();
 
-    while ((ch = getopt(argc, argv, "hg:bdf:pu:B:F:U:R:n:O:o:r:")) != -1) {
+    while ((ch = getopt(argc, argv, "hg:bdf:pu:B:F:U:R:n:O:o:r:i:")) != -1) {
         switch (ch) {
             case 'h':
                 printf ("lemonbar version %s patched with XFT support\n", VERSION);
-                printf ("usage: %s [-h | -g | -b | -d | -f | -a | -p | -n | -u | -B | -F | -R | -r]\n"
+                printf ("usage: %s [-h | -g | -b | -d | -f | -a | -p | -n | -u | -B | -F | -R | -r | -o | -i]\n"
                         "\t-h Show this help\n"
                         "\t-g Set the bar geometry {width}x{height}+{xoffset}+{yoffset}\n"
                         "\t-O Add randr output by name\n"
@@ -1725,7 +1726,8 @@ main (int argc, char **argv)
                         "\t-F Set foreground color in #AARRGGBB\n"
                         "\t-R Set border color in #AARRGGBB\n"
                         "\t-r Set border size in px\n"
-                        "\t-o Add a vertical offset to the text, it can be negative\n", argv[0]);
+                        "\t-o Add a vertical offset to the text, it can be negative\n"
+                        "\t-i Add a vertical offset for icons, it can be negative\n", argv[0]);
                 exit (EXIT_SUCCESS);
             case 'g': (void)parse_geometry_string(optarg, geom_v); break;
             case 'O': (void)parse_output_string(optarg); break;
@@ -1736,6 +1738,7 @@ main (int argc, char **argv)
             case 'f': font_load(optarg); break;
             case 'u': bu = strtoul(optarg, NULL, 10); break;
             case 'o': add_y_offset(strtol(optarg, NULL, 10)); break;
+            case 'i': icon_offset = strtol(optarg, NULL, 10); break;
             case 'B': dbgc = bgc = parse_color(optarg, NULL, BLACK); break;
             case 'F': dfgc = fgc = parse_color(optarg, NULL, WHITE); break;
             case 'U': dugc = ugc = parse_color(optarg, NULL, fgc); break;
